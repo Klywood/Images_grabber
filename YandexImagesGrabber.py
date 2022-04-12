@@ -4,7 +4,7 @@ import os
 import time
 from urllib.request import urlretrieve
 import logging
-
+import datetime
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -12,8 +12,7 @@ from selenium.webdriver.chrome.service import Service
 
 from webdriver_manager.chrome import ChromeDriverManager
 
-#  name of folder to save folders with images
-MAIN_FOLDER = 'saved_images'
+from settings import *
 
 
 def create_browser(decorated_method):
@@ -24,7 +23,7 @@ def create_browser(decorated_method):
         chrome_options = Options()
         chrome_options.add_argument("--disable-extensions")
         chrome_options.add_argument("--disable-gpu")
-        chrome_options.headless = True  # disable the visual display of the browser
+        chrome_options.headless = HIDE_BROWSER  # disable the visual display of the browser
         #  creating browser
         with webdriver.Chrome(service=Service(ChromeDriverManager().install()),
                               options=chrome_options) as browser:
@@ -39,6 +38,8 @@ class YandexImagesGrabber:
 
     def __init__(self):
         """Initialization method"""
+        # time of work
+        self.start_time = time.time()
         # query string
         self.query = ''
         #  list of html-elements with images
@@ -49,57 +50,63 @@ class YandexImagesGrabber:
         self._uploads = 0
         #  count of iterations without uploads
         self._iter_count = 0
-        #  saved images count
+        #  total and saved images count
         self.count = 0
+        self.saved = 0
         #  create logger
         self._logger = self.create_logger()
 
     @staticmethod
-    def create_logger(folder_name='logs'):
-        """Creates logger for parser. Takes the folder name or path to the folder to store
+    def create_logger(folder_name=LOG_FOLDER):
+        """Creates logger
+
+        :param folder_name: folder name or path to the folder to store log-file
+
+        :return: logger with settings and handlers
         """
-
-        # creating full path of log-file (path+file_name)
+        #  create folder
         os.makedirs(folder_name, exist_ok=True)
-
-        full_name = os.path.join(folder_name, 'Yndx_img_grabber')
-
-        # creating new logger
-        logger = logging.getLogger('Yndx_img_grabber')
-        # set the logger level, messages which are less severe than level will be ignored
-        logger.setLevel('DEBUG')
-        # create handlers (new for every logger)
-        filehandler = logging.FileHandler(full_name, 'w')
-        streamhandler = logging.StreamHandler()
-        streamhandler.setLevel('ERROR')  # only ERROR and CRITICAL level goes to console
-        # save path to handler in var
+        #  creating full path to log-file
+        full_name = os.path.join(folder_name, 'Yndx_img_grabber.log')
+        #  creating new logger
+        logger = logging.getLogger(LOG_NAME)
+        #  set the logger level, messages which are less severe than level will be ignored
+        logger.setLevel(LOG_LEVEL)
+        #  create handlers
+        #  to file
+        filehandler = logging.FileHandler(full_name, 'a')
+        filehandler.setLevel(FH_level)
         # set format of messages
         filehandler.setFormatter(
             logging.Formatter('%(asctime)s: %(levelname)s: %(name)s: %(message)s',
                               "%Y-%m-%d %H:%M:%S"))
-        # add handlers to logger
+        #  to console
+        streamhandler = logging.StreamHandler()
+        streamhandler.setLevel(SH_level)
+        #  add handlers to logger
         logger.addHandler(filehandler)
         logger.addHandler(streamhandler)
-        # first message in new logger
+        #  first message in new logger
         logger.debug('Created logger')
 
         return logger
 
     @create_browser
-    def _find_image_elements(self, browser, query, img_limit=100, img_size='medium', max_iterations=15):
+    def _find_image_elements(self, browser, query, img_limit, img_size, max_iterations):
         """Getting html-elements with images from yandex images search
 
         :param browser: selenium browser - get from decorator
         :param query: search query
         :param img_limit: number of images to be found
         :param img_size: size of images (medium as default)
-        :param max_iterations: limit on the number of scrolls of the web-page until uploading more images
-         (to avoid infinite loop)
+        :param max_iterations: limit on the number of scrolls of the web-page without getting new images
+        (to avoid infinite loop)
 
         :return: calls method that gets links of images from elements
         """
         self.query = query
         browser.get(f'https://yandex.ru/images/search?text={query}&nomisspell=1&noreask=1&isize={img_size}')
+        self._logger.info(f"Image search for '{query}'")
         #  list of elements with images
         self._elements = browser.find_elements(By.CSS_SELECTOR, 'div.serp-item')
         #  number of images
@@ -108,21 +115,22 @@ class YandexImagesGrabber:
             try:
                 #  scroll the page
                 browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-                #  waiting for upload page
-                #  the more pictures - the longer the waiting time to have time to load
-                # time.sleep(1)
+                #  waiting for upload images
+                time.sleep(0.1)
                 #  recalculating the number of images on page
                 self._elements = browser.find_elements(By.CSS_SELECTOR, 'div.serp-item')
+                #  increase iter_count if no new images found
+                self._iter_count = self._iter_count + 1 if images_number == len(self._elements) else 0
+                #  update current images number
                 images_number = len(self._elements)
-                print(f"Found {images_number} images")
+                self._logger.info(f"Found {images_number} images")
                 #  exit the loop when the number of iterations is exceeded (if something gone wrong)
-                self._iter_count += 1
                 if self._iter_count > max_iterations:
                     break
                 #  trying click button to upload more images(going to next page)
                 self.__upload_more(browser)
             except Exception as err:
-                print(f"Error {err}. Going next")
+                self._logger.error(f"Error {err}. Going next")
                 continue
         #  get links to images from element
         return self._get_images_links()
@@ -135,8 +143,8 @@ class YandexImagesGrabber:
             self._uploads += 1
             #  refreshing the iter count
             self._iter_count = 0
-            print('Uploading more images...')
-        #  if the end of the page hasn't been reached , there is no button - pass this step
+            self._logger.debug('Uploading more images...')
+        #  if the end of the page hasn't been reached or there is no button - pass this step
         except:
             pass
 
@@ -145,14 +153,9 @@ class YandexImagesGrabber:
 
         :return: list of links to images
         """
-        s = time.time()
-        for element in self._elements:
-            #  create dict from attribute
-            data = json.loads(element.get_attribute("data-bem"))
-            link = data['serp-item']['img_href']
-            # print(link)
-            self._links_to_images.append(link)
-        print('convert', time.time() - s)
+        self._logger.debug("Creating links to images...")
+        self._links_to_images = [json.loads(element.get_attribute("data-bem"))['serp-item']['img_href']
+                                 for element in self._elements]
         return self._links_to_images
 
     def _save_image(self, url, dir_to_save=None):
@@ -161,12 +164,15 @@ class YandexImagesGrabber:
         :param url: link to image
         :param dir_to_save: folder name to store images (query string as default)
         """
+
         folder = self._create_folder(dir_to_save)
         try:
             urlretrieve(url, os.path.join(folder, f"{self.count}.jpg"))
+            self._logger.debug(f"Img from: {url} successfully saved!")
+            self.saved += 1
         except Exception as err:
+            self._logger.warning(f"Can't save img from: {url}\ngenerated an exception: {err}")
             pass
-            # print(f"{url} generated an exception: {err}")
         finally:
             self.count += 1
 
@@ -181,6 +187,7 @@ class YandexImagesGrabber:
             future_to_url = [executor.submit(self._save_image, url, output_folder) for url in self._links_to_images]
             for future in concurrent.futures.as_completed(future_to_url):
                 future.result()
+        self._logger.info(f"{self.saved} of {self.count} images was saved")
         self.count = 0
 
     def _save_links(self, file_name=None):
@@ -205,26 +212,28 @@ class YandexImagesGrabber:
         os.makedirs(folder, exist_ok=True)
         return folder
 
-    def find_images(self, query, img_count=100, img_size='medium',
-                    iter_limit=15, save_images=True, save_links_to_file=False):
+    def find_images(self, query, img_count=LIMIT, img_size=SIZE,
+                    iter_limit=ITER, save_images=True, save_links_to_file=False):
         """Main method to use YandexImageGrabber class"""
-        start = time.time()
         #  find elements and links
         self._find_image_elements(query, img_count, img_size, iter_limit)
-        step1 = time.time()
-        print('getting images', step1 - start)
-        #  save links to file
-        if save_links_to_file:
-            self._save_links()
+        find_time = time.time()
+        self._logger.info(f"Image search time: "
+                          f"{str(datetime.timedelta(seconds=round(find_time - self.start_time)))}")
         # save images to folder
         if save_images:
             self._save_all()
-        print('saving', time.time() - step1)
-        print('total', time.time() - start)
+        self._logger.info(f"Saving time: "
+                          f"{str(datetime.timedelta(seconds=round(time.time() - find_time)))}")
+        #  save links to file
+        if save_links_to_file:
+            self._save_links()
+        self._logger.info(f"Total work time: "
+                          f"{str(datetime.timedelta(seconds=round(time.time() - self.start_time)))}")
 
 
 if __name__ == '__main__':
     """Example of using"""
 
     a = YandexImagesGrabber()
-    a.find_images("Дом", 3500)
+    a.find_images("Природа", 1500)
