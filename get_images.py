@@ -1,7 +1,7 @@
 import YandexImagesGrabber as yg
 
 #  Input your query HERE:
-q = 'Мeч'
+q = 'Cat'
 
 #  Number of images to be found:
 img_count = 500
