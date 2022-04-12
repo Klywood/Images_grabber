@@ -3,11 +3,14 @@ import json
 import os
 import time
 from urllib.request import urlretrieve
+import logging
 
-import requests
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.chrome.service import Service
+
+from webdriver_manager.chrome import ChromeDriverManager
 
 #  name of folder to save folders with images
 MAIN_FOLDER = 'saved_images'
@@ -23,7 +26,8 @@ def create_browser(decorated_method):
         chrome_options.add_argument("--disable-gpu")
         chrome_options.headless = True  # disable the visual display of the browser
         #  creating browser
-        with webdriver.Chrome(options=chrome_options) as browser:
+        with webdriver.Chrome(service=Service(ChromeDriverManager().install()),
+                              options=chrome_options) as browser:
             #  call the main function
             decorated_method(self, browser, *args, **kwargs)
 
@@ -47,7 +51,39 @@ class YandexImagesGrabber:
         self._iter_count = 0
         #  saved images count
         self.count = 0
-        self.session = requests.Session()
+        #  create logger
+        self._logger = self.create_logger()
+
+    @staticmethod
+    def create_logger(folder_name='logs'):
+        """Creates logger for parser. Takes the folder name or path to the folder to store
+        """
+
+        # creating full path of log-file (path+file_name)
+        os.makedirs(folder_name, exist_ok=True)
+
+        full_name = os.path.join(folder_name, 'Yndx_img_grabber')
+
+        # creating new logger
+        logger = logging.getLogger('Yndx_img_grabber')
+        # set the logger level, messages which are less severe than level will be ignored
+        logger.setLevel('DEBUG')
+        # create handlers (new for every logger)
+        filehandler = logging.FileHandler(full_name, 'w')
+        streamhandler = logging.StreamHandler()
+        streamhandler.setLevel('ERROR')  # only ERROR and CRITICAL level goes to console
+        # save path to handler in var
+        # set format of messages
+        filehandler.setFormatter(
+            logging.Formatter('%(asctime)s: %(levelname)s: %(name)s: %(message)s',
+                              "%Y-%m-%d %H:%M:%S"))
+        # add handlers to logger
+        logger.addHandler(filehandler)
+        logger.addHandler(streamhandler)
+        # first message in new logger
+        logger.debug('Created logger')
+
+        return logger
 
     @create_browser
     def _find_image_elements(self, browser, query, img_limit=100, img_size='medium', max_iterations=15):
@@ -74,7 +110,7 @@ class YandexImagesGrabber:
                 browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                 #  waiting for upload page
                 #  the more pictures - the longer the waiting time to have time to load
-                time.sleep(1)
+                # time.sleep(1)
                 #  recalculating the number of images on page
                 self._elements = browser.find_elements(By.CSS_SELECTOR, 'div.serp-item')
                 images_number = len(self._elements)
@@ -184,10 +220,11 @@ class YandexImagesGrabber:
         if save_images:
             self._save_all()
         print('saving', time.time() - step1)
-        print('total', time.time()-start)
+        print('total', time.time() - start)
+
 
 if __name__ == '__main__':
     """Example of using"""
-    a = YandexImagesGrabber()
-    a.find_images("Космос", 1200, save_images=True, save_links_to_file=False)
 
+    a = YandexImagesGrabber()
+    a.find_images("Дом", 3500)

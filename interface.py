@@ -12,6 +12,8 @@ class Window(QMainWindow):
         self.setWindowTitle('YandexImageGrabber')
         self.setGeometry(300, 250, 350, 250)
 
+        self.new_text = QtWidgets.QLabel(self)
+
         self.main_text = QtWidgets.QLabel(self)
         self.main_text.setText('Hello')
         self.main_text.adjustSize()
@@ -23,7 +25,9 @@ class Window(QMainWindow):
         self.btn.clicked.connect(self.push_btn)
 
     def push_btn(self):
-        print('Kek')
+        self.new_text.setText('New text')
+        self.new_text.move(100, 222)
+        self.new_text.adjustSize()
 
 
 def application():
