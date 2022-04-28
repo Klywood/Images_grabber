@@ -1,9 +1,10 @@
 import concurrent.futures
 import json
 import os
+import sys
+
 import time
 from urllib.request import urlretrieve
-import logging
 import datetime
 
 from selenium import webdriver
@@ -78,12 +79,13 @@ class YandexImagesGrabber:
         filehandler = logging.FileHandler(full_name, 'a')
         filehandler.setLevel(FH_level)
         # set format of messages
-        filehandler.setFormatter(
-            logging.Formatter('%(asctime)s: %(levelname)s: %(name)s: %(message)s',
-                              "%Y-%m-%d %H:%M:%S"))
+        format = logging.Formatter('%(asctime)s: %(levelname)s: %(name)s: %(message)s',
+                              "%Y-%m-%d %H:%M:%S")
+        filehandler.setFormatter(format)
         #  to console
-        streamhandler = logging.StreamHandler()
+        streamhandler = logging.StreamHandler(stream=sys.stdout)
         streamhandler.setLevel(SH_level)
+        streamhandler.setFormatter(format)
         #  add handlers to logger
         logger.addHandler(filehandler)
         logger.addHandler(streamhandler)
@@ -247,4 +249,4 @@ if __name__ == '__main__':
     """Example of using"""
 
     a = YandexImagesGrabber()
-    a.get_images("Природа", 1500)
+    a.get_images("Cat", 200)
