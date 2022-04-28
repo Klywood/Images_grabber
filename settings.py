@@ -9,7 +9,7 @@ LOG_LEVEL = 'DEBUG'  # logger level
 FH_level = 'DEBUG'  # to file
 SH_level = 'INFO'  # to console
 
-# main settings
+# main default settings
 LIMIT = 100  # num of images to found
 SIZE = 'medium'  # size of images
 ITER = 10  # max iterations without getting new images

@@ -249,4 +249,4 @@ if __name__ == '__main__':
     """Example of using"""
 
     a = YandexImagesGrabber()
-    a.get_images("Cat", 200)
+    a.get_images("Dog", 200)
