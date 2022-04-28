@@ -1,6 +1,6 @@
-# Grabber of images using Yandex images
+# Grabber of images using Yandex
 
-**Fast search and save images by request using Yandex image search**
+**Fast search and save images by query using Yandex image search**
 
 
 Run `get_images.py` to try

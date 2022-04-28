@@ -2,7 +2,7 @@ import concurrent.futures
 import json
 import os
 import sys
-
+import logging
 import time
 from urllib.request import urlretrieve
 import datetime
