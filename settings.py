@@ -11,7 +11,7 @@ SH_level = 'INFO'  # to console
 
 # main default settings
 LIMIT = 100  # num of images to found
-SIZE = 'medium'  # size of images
+SIZE = 'medium'  # size of images ['small', 'medium', 'large']
 ITER = 10  # max iterations without getting new images
 #  delay in seconds for uploading new images between scrolling
 DELAY = 0.1

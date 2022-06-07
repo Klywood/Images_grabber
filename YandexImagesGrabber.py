@@ -16,6 +16,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from settings import *
 
+#  disable webdriver-manager logs
+logging.getLogger('WDM').setLevel(logging.NOTSET)
+
 
 def create_browser(decorated_method):
     """Decorator to create selenium browser"""
@@ -101,7 +104,7 @@ class YandexImagesGrabber:
         :param browser: selenium browser - get from decorator
         :param query: search query
         :param img_limit: number of images to be found
-        :param img_size: size of images (medium as default)
+        :param img_size: size of images ['small', 'medium', 'large'] (medium as default)
         :param max_iterations: limit on the number of scrolls of the web-page without getting new images
         (to avoid infinite loop)
 
