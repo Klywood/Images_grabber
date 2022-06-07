@@ -16,8 +16,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 
 from settings import *
 
-#  disable webdriver-manager logs
-logging.getLogger('WDM').setLevel(logging.NOTSET)
+
 
 
 def create_browser(decorated_method):
@@ -69,6 +68,8 @@ class YandexImagesGrabber:
 
         :return: logger with settings and handlers
         """
+        #  disable webdriver-manager logs
+        logging.getLogger('WDM').setLevel(logging.NOTSET)
         #  create folder
         os.makedirs(folder_name, exist_ok=True)
         #  creating full path to log-file
