@@ -1,4 +1,4 @@
-# Grabber of images using Yandex
+# Grabber of images
 
 **Fast search and save images by query using Yandex image search**
 
