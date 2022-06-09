@@ -4,7 +4,7 @@ import YandexImagesGrabber as yg
 q = 'Cat'
 
 #  Number of images to be found:
-img_count = 500
+img_count = 250
 
 if __name__ == '__main__':
     grabber = yg.YandexImagesGrabber()
